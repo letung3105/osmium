@@ -1,8 +1,21 @@
 [package]
-name = "OSmium"
+name = "osmium"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "osmium"
+test = false
+bench = false
+
+[profile.dev]
+# Disable stack unwinding on panics
+panic = "abort"
+
+[profile.release]
+# Disable stack unwinding on panics
+panic = "abort"
 
 [dependencies]
