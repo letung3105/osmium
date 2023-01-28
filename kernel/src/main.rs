@@ -8,16 +8,39 @@
 // doesn't make sense without an underlying runtime that calls it.
 #![no_main]
 
+use osmium_kernel::{
+    frame_buffer::{FrameBufferWriter, WRITER},
+    println,
+};
+use spin::mutex::SpinMutex;
+
 // This function is called on panic
 #[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    println!("{}", info);
     loop {}
 }
 
 // main() is called after the runtime is set up by the language. Because we don't have
 // access to the Rust runtime, we have to define an entrypoint.
-fn kernel_main(_boot_info: &'static mut bootloader_api::BootInfo) -> ! {
-    loop {}
+fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
+    if let Some(frame_buffer) = boot_info.framebuffer.as_mut() {
+        WRITER.call_once(|| {
+            let info = frame_buffer.info();
+            let buffer = frame_buffer.buffer_mut();
+            SpinMutex::new(FrameBufferWriter::new(buffer, info))
+        });
+    }
+
+    let mut count = 0;
+    loop {
+        if count % 2 == 0 {
+            println!("Hello, world!");
+        } else {
+            println!("Goodbye, world!");
+        }
+        count += 1;
+    }
 }
 
 bootloader_api::entry_point!(kernel_main);
