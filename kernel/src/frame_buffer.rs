@@ -3,10 +3,9 @@
 use core::{fmt, ptr};
 
 use bootloader_api::info::{FrameBufferInfo, PixelFormat};
+use core::fmt::Write;
 use noto_sans_mono_bitmap::{get_raster, RasterizedChar};
 use spin::mutex::SpinMutex;
-
-use self::font_constant::CHAR_RASTER_HEIGHT;
 
 /// Additional vertical space between lines.
 const LINE_SPACING: usize = 2;
@@ -49,11 +48,10 @@ fn rasterize_lossy(c: char) -> RasterizedChar {
 }
 
 /// The global writer instance.
-pub static WRITER: spin::Once<SpinMutex<FrameBufferWriter<'static>>> = spin::Once::new();
+static WRITER: spin::Once<SpinMutex<FrameBufferWriter<'static>>> = spin::Once::new();
 
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments<'_>) {
-    use core::fmt::Write;
     if let Some(w) = WRITER.get() {
         w.lock().write_fmt(args).unwrap();
     }
@@ -79,6 +77,13 @@ pub struct FrameBufferWriter<'a> {
     info: FrameBufferInfo,
     x_pos: usize,
     y_pos: usize,
+}
+
+impl FrameBufferWriter<'static> {
+    /// Initializes the global writer that output to VGA
+    pub fn init_global(buffer: &'static mut [u8], info: FrameBufferInfo) {
+        WRITER.call_once(|| SpinMutex::new(Self::new(buffer, info)));
+    }
 }
 
 impl<'a> FrameBufferWriter<'a> {
@@ -158,7 +163,7 @@ impl<'a> FrameBufferWriter<'a> {
 
     /// Shift the screen content up by 1 line
     fn shift_up(&mut self) {
-        let pixel_offset = CHAR_RASTER_HEIGHT.val() + LINE_SPACING;
+        let pixel_offset = font_constant::CHAR_RASTER_HEIGHT.val() + LINE_SPACING;
         let byte_stride = self.info.stride * self.info.bytes_per_pixel;
         let head_byte_offset = pixel_offset * byte_stride;
         let tail_byte_offset = (self.info.height - pixel_offset) * byte_stride;
@@ -180,7 +185,7 @@ impl<'a> FrameBufferWriter<'a> {
     }
 
     fn newline(&mut self) {
-        self.y_pos += CHAR_RASTER_HEIGHT.val() + LINE_SPACING;
+        self.y_pos += font_constant::CHAR_RASTER_HEIGHT.val() + LINE_SPACING;
         self.carriage_return();
     }
 }
