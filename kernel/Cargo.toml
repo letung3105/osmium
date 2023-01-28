@@ -1,0 +1,12 @@
+[package]
+name = "osmium-kernel"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "osmium-kernel"
+test = false
+bench = false
+
+[dependencies]
+bootloader_api = "0.11"
