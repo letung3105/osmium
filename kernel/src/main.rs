@@ -11,7 +11,7 @@
 #![test_runner(osmium_kernel::testable::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
-use osmium_kernel::frame_buffer::FrameBufferWriter;
+use osmium_kernel::{frame_buffer::FrameBufferWriter, println};
 
 bootloader_api::entry_point!(kernel_main);
 
@@ -27,14 +27,21 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     #[cfg(test)]
     test_main();
 
-    loop {}
+    let mut flag = true;
+    loop {
+        if flag {
+            println!("Hello, world!");
+        } else {
+            println!("Goodbye, world!");
+        }
+        flag = !flag
+    }
 }
 
 // This function is called on panic
 #[cfg(not(test))]
 #[panic_handler]
 fn handle_panic(info: &core::panic::PanicInfo) -> ! {
-    use osmium_kernel::println;
     println!("{}", info);
     loop {}
 }
@@ -43,7 +50,6 @@ fn handle_panic(info: &core::panic::PanicInfo) -> ! {
 #[cfg(test)]
 #[panic_handler]
 fn handle_panic(info: &core::panic::PanicInfo) -> ! {
-    use osmium_kernel::println;
     println!("[failed]\n");
     println!("Error: {}\n", info);
     // TODO: Exit QEMU
