@@ -1,10 +1,15 @@
 [package]
-name = "osmium-kernel"
+name = "osmium_kernel"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "osmium_kernel"
+test = false
+bench = false
+
 [[bin]]
-name = "osmium-kernel"
+name = "osmium_kernel"
 test = false
 bench = false
 
