@@ -7,15 +7,13 @@
 // Tell the Rust compiler that we don’t want to use the normal Rust-level entry point, `main`
 // doesn't make sense without an underlying runtime that calls it.
 #![no_main]
+#![feature(custom_test_frameworks)]
+#![test_runner(osmium_kernel::testable::test_runner)]
+#![reexport_test_harness_main = "test_main"]
 
-use osmium_kernel::{frame_buffer::FrameBufferWriter, println};
+use osmium_kernel::frame_buffer::FrameBufferWriter;
 
-// This function is called on panic
-#[panic_handler]
-fn panic(info: &core::panic::PanicInfo) -> ! {
-    println!("{}", info);
-    loop {}
-}
+bootloader_api::entry_point!(kernel_main);
 
 // main() is called after the runtime is set up by the language. Because we don't have
 // access to the Rust runtime, we have to define an entrypoint.
@@ -26,15 +24,34 @@ fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
         FrameBufferWriter::init_global(buffer, info)
     }
 
-    for count in 0..500 {
-        if count % 2 == 0 {
-            println!("Hello, world!");
-        } else {
-            println!("Goodbye, world!");
-        }
-    }
+    #[cfg(test)]
+    test_main();
 
     loop {}
 }
 
-bootloader_api::entry_point!(kernel_main);
+// This function is called on panic
+#[cfg(not(test))]
+#[panic_handler]
+fn handle_panic(info: &core::panic::PanicInfo) -> ! {
+    use osmium_kernel::println;
+    println!("{}", info);
+    loop {}
+}
+
+/// Error handler for tests. Exits QEMU immediately after a panic.
+#[cfg(test)]
+#[panic_handler]
+fn handle_panic(info: &core::panic::PanicInfo) -> ! {
+    use osmium_kernel::println;
+    println!("[failed]\n");
+    println!("Error: {}\n", info);
+    // TODO: Exit QEMU
+    //exit_qemu(QemuExitCode::Failed);
+    loop {}
+}
+
+#[test_case]
+fn trivial_assertion() {
+    assert!(1 == 1);
+}
